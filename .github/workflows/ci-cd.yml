@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY: registry.digitalocean.com/taskmanager
+  REGISTRY: registry.digitalocean.com/taskmanagerregistry
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
