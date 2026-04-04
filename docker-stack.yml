@@ -31,7 +31,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: taskmanager
+      DB_NAME: taskmanager 
       DB_USER: postgres
       DB_PASSWORD_FILE: /run/secrets/db_password
       JWT_SECRET_FILE: /run/secrets/jwt_secret
