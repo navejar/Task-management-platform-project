@@ -12,7 +12,7 @@ concurrency:
 
 env:
   REGISTRY: registry.digitalocean.com/taskmanagerregistry
-  IMAGE_NAME: task-manager
+  IMAGE_NAME: taskmanagerregistry
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -166,8 +166,8 @@ jobs:
 
             cd /opt/task-manager
             docker login registry.digitalocean.com -u ${{ secrets.DOCR_USERNAME }} -p ${{ secrets.DOCR_PASSWORD }}
-            docker pull $DOCKER_REGISTRY/task-manager:backend-latest
-            docker pull $DOCKER_REGISTRY/task-manager:frontend-latest
+            docker pull $DOCKER_REGISTRY/taskmanagerregistry:backend-latest
+            docker pull $DOCKER_REGISTRY/taskmanagerregistry:frontend-latest
             docker stack deploy -c docker-stack.yml taskmanager --with-registry-auth
             docker service ls
 
