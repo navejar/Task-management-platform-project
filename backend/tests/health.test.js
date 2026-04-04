@@ -1,9 +1,13 @@
 const request = require('supertest');
 const { app, server } = require('../src/server');
+const pool = require('../src/config/db');
 
 describe('GET /api/health', () => {
-  afterAll((done) => {
-    server.close(done);
+  afterAll(async () => {
+    if (server.listening) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+    await pool.end();
   });
 
   it('returns application health', async () => {

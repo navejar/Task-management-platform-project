@@ -118,13 +118,17 @@ if (process.env.NODE_ENV === 'production') {
 // ──────────────────────────────────────────
 const start = async () => {
   await initDB();
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`WebSocket server running on ws://localhost:${PORT}/ws`);
+  return new Promise((resolve) => {
+    const listener = server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`WebSocket server running on ws://localhost:${PORT}/ws`);
+      resolve(listener);
+    });
   });
 };
 
-start();
+if (require.main === module) {
+  start();
+}
 
-
-module.exports = { app, server };
+module.exports = { app, server, start };
