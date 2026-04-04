@@ -164,7 +164,7 @@ jobs:
             export FRONTEND_TAG=frontend-latest
             export DO_DROPLET_ID=${{ secrets.DO_DROPLET_ID }}
 
-            cd /opt/task-manager
+            cd /opt/task-manager/Task-management-platform-project
             docker login registry.digitalocean.com -u ${{ secrets.DOCR_USERNAME }} -p ${{ secrets.DOCR_PASSWORD }}
             docker pull $DOCKER_REGISTRY/taskmanagerregistry:backend-latest
             docker pull $DOCKER_REGISTRY/taskmanagerregistry:frontend-latest
