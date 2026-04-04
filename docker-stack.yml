@@ -27,7 +27,7 @@ services:
       - app-network
 
   backend:
-    image: ${DOCKER_REGISTRY:-localhost:5000}/task-manager-backend:${TAG:-latest}
+    image: ${DOCKER_REGISTRY:-localhost:5000}/task-manager:${BACKEND_TAG:-backend-latest}
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -66,7 +66,7 @@ services:
       - app-network
 
   frontend:
-    image: ${DOCKER_REGISTRY:-localhost:5000}/task-manager-frontend:${TAG:-latest}
+    image: ${DOCKER_REGISTRY:-localhost:5000}/task-manager:${FRONTEND_TAG:-frontend-latest}
     ports:
       - "80:80"
     deploy:

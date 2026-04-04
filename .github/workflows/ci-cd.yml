@@ -12,6 +12,7 @@ concurrency:
 
 env:
   REGISTRY: registry.digitalocean.com/taskmanagerregistry
+  IMAGE_NAME: task-manager
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -126,23 +127,29 @@ jobs:
       - name: Log in to DigitalOcean Container Registry
         run: doctl registry login --expiry-seconds 1200
 
-      - name: Build backend image
+           - name: Build backend image
         run: |
-          docker build             -t $REGISTRY/task-manager-backend:$IMAGE_TAG             -t $REGISTRY/task-manager-backend:latest             ./backend
+          docker build \
+            -t $REGISTRY/$IMAGE_NAME:backend-$IMAGE_TAG \
+            -t $REGISTRY/$IMAGE_NAME:backend-latest \
+            ./backend
 
       - name: Build frontend image
         run: |
-          docker build             -t $REGISTRY/task-manager-frontend:$IMAGE_TAG             -t $REGISTRY/task-manager-frontend:latest             ./frontend
+          docker build \
+            -t $REGISTRY/$IMAGE_NAME:frontend-$IMAGE_TAG \
+            -t $REGISTRY/$IMAGE_NAME:frontend-latest \
+            ./frontend
 
       - name: Push backend image
         run: |
-          docker push $REGISTRY/task-manager-backend:$IMAGE_TAG
-          docker push $REGISTRY/task-manager-backend:latest
+          docker push $REGISTRY/$IMAGE_NAME:backend-$IMAGE_TAG
+          docker push $REGISTRY/$IMAGE_NAME:backend-latest
 
       - name: Push frontend image
         run: |
-          docker push $REGISTRY/task-manager-frontend:$IMAGE_TAG
-          docker push $REGISTRY/task-manager-frontend:latest
+          docker push $REGISTRY/$IMAGE_NAME:frontend-$IMAGE_TAG
+          docker push $REGISTRY/$IMAGE_NAME:frontend-latest
 
       - name: Deploy stack on Droplet
         uses: appleboy/ssh-action@v1.0.3
@@ -153,13 +160,14 @@ jobs:
           script_stop: true
           script: |
             export DOCKER_REGISTRY=${{ env.REGISTRY }}
-            export TAG=latest
+            export BACKEND_TAG=backend-latest
+            export FRONTEND_TAG=frontend-latest
             export DO_DROPLET_ID=${{ secrets.DO_DROPLET_ID }}
 
             cd /opt/task-manager
             docker login registry.digitalocean.com -u ${{ secrets.DOCR_USERNAME }} -p ${{ secrets.DOCR_PASSWORD }}
-            docker pull $DOCKER_REGISTRY/task-manager-backend:latest
-            docker pull $DOCKER_REGISTRY/task-manager-frontend:latest
+            docker pull $DOCKER_REGISTRY/task-manager:backend-latest
+            docker pull $DOCKER_REGISTRY/task-manager:frontend-latest
             docker stack deploy -c docker-stack.yml taskmanager --with-registry-auth
             docker service ls
 
