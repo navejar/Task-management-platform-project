@@ -1,0 +1,183 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: registry.digitalocean.com/taskmanager
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  backend-test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: taskmanager_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d taskmanager_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: taskmanager_test
+      DB_USER: postgres
+      DB_PASSWORD: testpassword
+      JWT_SECRET: test_secret
+      JWT_EXPIRES_IN: 24h
+      PORT: 5000
+      NODE_ENV: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+  frontend-build:
+    name: Frontend build validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          CI: false
+        run: npm run build
+
+  docker-build:
+    name: Docker build validation
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t task-manager-backend:test ./backend
+
+      - name: Build frontend image
+        run: docker build -t task-manager-frontend:test ./frontend
+
+      - name: Build backup image
+        run: docker build -t task-manager-backup:test -f backup/Dockerfile .
+
+  deploy:
+    name: Build, push, and deploy
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build, docker-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Build backend image
+        run: |
+          docker build             -t $REGISTRY/task-manager-backend:$IMAGE_TAG             -t $REGISTRY/task-manager-backend:latest             ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build             -t $REGISTRY/task-manager-frontend:$IMAGE_TAG             -t $REGISTRY/task-manager-frontend:latest             ./frontend
+
+      - name: Push backend image
+        run: |
+          docker push $REGISTRY/task-manager-backend:$IMAGE_TAG
+          docker push $REGISTRY/task-manager-backend:latest
+
+      - name: Push frontend image
+        run: |
+          docker push $REGISTRY/task-manager-frontend:$IMAGE_TAG
+          docker push $REGISTRY/task-manager-frontend:latest
+
+      - name: Deploy stack on Droplet
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_DROPLET_IP }}
+          username: ${{ secrets.DO_SSH_USER }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            export DOCKER_REGISTRY=${{ env.REGISTRY }}
+            export TAG=latest
+            export DO_DROPLET_ID=${{ secrets.DO_DROPLET_ID }}
+
+            cd /opt/task-manager
+            docker login registry.digitalocean.com -u ${{ secrets.DOCR_USERNAME }} -p ${{ secrets.DOCR_PASSWORD }}
+            docker pull $DOCKER_REGISTRY/task-manager-backend:latest
+            docker pull $DOCKER_REGISTRY/task-manager-frontend:latest
+            docker stack deploy -c docker-stack.yml taskmanager --with-registry-auth
+            docker service ls
+
+      - name: Verify deployment health
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_DROPLET_IP }}
+          username: ${{ secrets.DO_SSH_USER }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            for i in $(seq 1 12); do
+              if curl -fsS http://localhost/api/health > /dev/null; then
+                echo "Deployment healthy"
+                exit 0
+              fi
+              echo "Waiting for deployment to become healthy..."
+              sleep 10
+            done
+            echo "Deployment health check failed"
+            exit 1

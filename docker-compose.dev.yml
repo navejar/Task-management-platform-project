@@ -1,0 +1,22 @@
+# Development override - use with:
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  backend:
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./backend/src:/app/src
+    command: npx nodemon src/server.js
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      - REACT_APP_API_URL=http://localhost:5001/api
+      - REACT_APP_WS_URL=ws://localhost:5001/ws
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
