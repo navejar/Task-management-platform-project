@@ -151,11 +151,15 @@ CPU usage, memory usage, and task activity are tracked using DigitalOcean metric
 
 ### Automated Backups
 
-Database backups are created at regular intervals and stored for recovery, reducing risk of data loss.
+Automated cloud database backups are created at regular intervals and stored for recovery, reducing risk of data loss.
+
+![Cloud Backup](images/cloudbackup.png)
 
 ### CI/CD Pipeline
 
 The application is built and deployed automatically using GitHub Actions when changes are pushed, supporting consistent and repeatable deployment.
+
+![CI/CD Pipeline](images/cicd.png)
 
 ## User Guide
 
@@ -173,7 +177,7 @@ This section outlines how to use the main features of the application.
 3. Submit the form  
 4. Log in using your credentials  
 
-(Insert screenshot of registration page)
+![Sign In](images/signin.png)
 
 ### Logging In
 
@@ -181,7 +185,7 @@ This section outlines how to use the main features of the application.
 2. Click login  
 3. You will be redirected to the dashboard  
 
-(Insert screenshot of login page)
+![Login](images/login.png)
 
 ### Dashboard
 
@@ -190,7 +194,7 @@ After logging in, users can view and interact with tasks.
 - Members can view assigned tasks and create new ones  
 - Admins can view all tasks and approval requests  
 
-(Insert screenshot of dashboard)
+![Member Dashboard](images/memberdash.png)
 
 ### Creating a Task
 
@@ -201,7 +205,7 @@ After logging in, users can view and interact with tasks.
    - Assignee  
 3. Submit  
 
-(Insert screenshot of task creation)
+![Create Task](images/createtask.png)
 
 ### Updating Task Status
 
@@ -213,7 +217,7 @@ After logging in, users can view and interact with tasks.
 
 Changes appear immediately.
 
-(Insert screenshot of task update)
+![Update Task](images/updatetask.png)
 
 ### Searching Tasks
 
@@ -221,7 +225,7 @@ Changes appear immediately.
 2. Enter keyword or assignee  
 3. Results update automatically  
 
-(Insert screenshot of search)
+![Search Task](images/searchtask.png)
 
 Task updates are automatically reflected for all users without refreshing.
 
@@ -232,14 +236,14 @@ Task updates are automatically reflected for all users without refreshing.
 3. Approve or reject  
 4. Remove users if needed  
 
-(Insert screenshot of admin panel)
+![Admin Dashboard](images/admindash.png)
 
 ### Logging Out
 
 1. Click logout  
 2. You will be redirected to login page  
 
-(Insert screenshot of logout)
+![Logout](images/logout.png)
 
 ## Development Guide
 
@@ -362,11 +366,15 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 The application is deployed on DigitalOcean using Docker Swarm for orchestration.
 
-Live URL: URL HERE
+Live URL: http://167.99.177.118/
 
 ## AI Assistance & Verification
 
-FILL IN HERE
+AI tools were used in a limited and targeted manner to support implementation details rather than drive the overall system design. Core decisions such as using Docker Swarm, PostgreSQL for persistence, and the overall architecture were determined by the team prior to using AI. AI was primarily used to clarify specific technical problems, including WebSocket authentication using JWT, handling session persistence during backend downtime, and evaluating different approaches for implementing search in PostgreSQL.
+
+One representative limitation occurred during the WebSocket implementation. While AI suggested passing the JWT through query parameters and validating it on connection, it did not account for certain implementation details such as proper URL parsing or handling different failure scenarios. This led to runtime issues that required manual debugging and adjustments. Additional limitations were observed in the PostgreSQL search suggestion, where full-text search using `to_tsquery` was recommended without accounting for the need to preprocess user input, resulting in query errors when handling raw input.
+
+All AI-assisted outputs were critically evaluated before use. Correctness was verified through a combination of manual testing and system-level validation. This included testing API endpoints with different input cases, verifying WebSocket behavior with valid and invalid tokens, inspecting Docker logs to confirm service behavior, and testing system behavior during backend downtime. Data persistence was also verified by restarting containers and confirming that application state remained intact. Further details and specific examples of AI interactions are documented in `ai-session.md`.
 
 ## Individual Contributions
 
