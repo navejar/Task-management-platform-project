@@ -70,7 +70,7 @@ services:
     ports:
       - "80:80"
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
         condition: on-failure
       update_config:
