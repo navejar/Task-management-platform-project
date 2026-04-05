@@ -9,13 +9,30 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'password',
 });
 
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
-});
+async function waitForDb(maxRetries = 30, delayMs = 5000) {
+  for (let i = 1; i <= maxRetries; i++) {
+    try {
+      await pool.query("SELECT 1");
+      console.log("Database is ready");
+      return;
+    } catch (err) {
+      console.log(`DB not ready yet (${i}/${maxRetries}): ${err.message}`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw new Error("Database did not become ready in time");
+}
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+async function startServer() {
+  await waitForDb();
+  app.listen(5000, () => {
+    console.log("Backend listening on port 5000");
+  });
+}
+
+startServer().catch(err => {
+  console.error("Startup failed:", err);
+  process.exit(1);
 });
 
 module.exports = pool;
